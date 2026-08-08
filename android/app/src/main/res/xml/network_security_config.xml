@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Configuracao de PRODUCAO (usada em builds "release"): so aceita conexao
+  criptografada (wss://) com o servidor - nenhuma excecao de cleartext
+  aqui. A versao permissiva pra testar contra um servidor local (ws://) fica
+  em src/debug/res/xml/network_security_config.xml e so entra em builds de
+  debug - nunca vaza pra uma versao que outras pessoas instalariam.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>

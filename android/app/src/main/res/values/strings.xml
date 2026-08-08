@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Ozi</string>
+    <string name="canal_notificacao_servico">Ozi ouvindo</string>
+    <string name="notificacao_titulo">Ozi esta ouvindo</string>
+    <string name="notificacao_texto">Diga \"Ozi\" pra conversar</string>
+
+    <!-- Preenchido depois de criar o projeto Firebase (console.firebase.google.com)
+         -> Autenticacao -> Sign-in method -> Google -> pega o "Web client ID"
+         (nao e o Android client ID). Sem isso, o botao de Google fica desativado
+         mas o resto do app funciona normal (login por email/senha). -->
+    <string name="google_web_client_id"></string>
+</resources>

@@ -1,0 +1,8 @@
+node_modules
+data
+android
+.env
+.env.example
+*.log
+.git
+.gitignore

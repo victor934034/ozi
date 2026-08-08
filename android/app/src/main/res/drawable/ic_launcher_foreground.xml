@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dois "olhos em pilula" azuis, mesmo desenho do rosto do Ozi na pagina
+     web e no display OLED do simulador ESP32 - mantem a identidade visual
+     consistente em todas as plataformas. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#2F6BFF"
+        android:pathData="M34,38 a11,20 0 1,0 0.01,0 Z" />
+    <path
+        android:fillColor="#2F6BFF"
+        android:pathData="M74,38 a11,20 0 1,0 0.01,0 Z" />
+</vector>

@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<title>Ozi</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --accent: #2f6bff;
+    --accent-glow: rgba(47, 107, 255, 0.65);
+    --bg: #0a0c10;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    padding: 32px 20px;
+    background: radial-gradient(circle at 50% 20%, #131824 0%, var(--bg) 65%);
+    color: #e8ecf1;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  h1 {
+    margin: 0;
+    font-weight: 600;
+    letter-spacing: 0.35em;
+    font-size: 15px;
+    color: #7d8896;
+  }
+  #status {
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: #151b24;
+    border: 1px solid #232c38;
+    color: #7d8896;
+  }
+  #status.on { color: var(--accent); border-color: var(--accent); }
+
+  #painel {
+    width: 320px;
+    height: 220px;
+    border-radius: 46px;
+    background: #050607;
+    box-shadow:
+      inset 0 0 0 2px #1a1e24,
+      inset 0 0 30px rgba(0,0,0,0.8),
+      0 0 50px -8px var(--accent-glow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: respirar 5s ease-in-out infinite;
+    transition: box-shadow 0.6s ease;
+  }
+  @keyframes respirar {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.012); }
+  }
+
+  svg#face { width: 240px; height: 140px; overflow: visible; }
+
+  /* Rosto minimalista tipo AIBI/EMO/Cozmo: so dois "olhos" em pilula, sem
+     boca - fala e humor sao expressos pelo brilho/formato dos olhos. */
+  .olho-grupo {
+    transform-origin: center;
+    transform-box: fill-box;
+    transition: transform 0.16s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .olho {
+    fill: url(#gradOlho);
+    filter: drop-shadow(0 0 10px var(--accent-glow)) drop-shadow(0 0 26px var(--accent-glow));
+    transition: filter 0.5s ease;
+  }
+  .stop-brilho { stop-color: #ffffff; stop-opacity: 0.95; }
+  .stop-meio { stop-color: var(--accent); stop-opacity: 1; }
+  .stop-fim { stop-color: var(--accent); stop-opacity: 1; }
+
+  /* As classes de humor ficam no #painel-wrap (nao no svg) pra que TANTO o
+     brilho externo do painel quanto os olhos reajam juntos - antes so os
+     olhos mudavam de cor, o brilho de fora ficava sempre azul. */
+  #painel-wrap.alerta { --accent: #ff7a5c; --accent-glow: rgba(255, 122, 92, 0.65); }
+  #painel-wrap.alerta #painel { animation: respirar 5s ease-in-out infinite, pulsoAlerta 1.1s ease-in-out infinite; }
+  @keyframes pulsoAlerta {
+    0%, 100% { box-shadow: inset 0 0 0 2px #1a1e24, inset 0 0 30px rgba(0,0,0,0.8), 0 0 50px -8px var(--accent-glow); }
+    50% { box-shadow: inset 0 0 0 2px #1a1e24, inset 0 0 30px rgba(0,0,0,0.8), 0 0 70px 4px var(--accent-glow); }
+  }
+  #painel-wrap.instavel { --accent: #6c93a6; --accent-glow: rgba(108, 147, 166, 0.35); }
+  #painel-wrap.instavel { filter: saturate(0.5); }
+
+  .controles { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  button, select {
+    background: #151b24;
+    color: #e8ecf1;
+    border: 1px solid #232c38;
+    border-radius: 999px;
+    padding: 10px 18px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  select { cursor: pointer; max-width: 240px; }
+  button:disabled { opacity: 0.35; cursor: not-allowed; }
+  button.ativo { background: var(--accent); color: #05131c; border-color: var(--accent); }
+  input[type=text] {
+    background: #151b24;
+    color: #e8ecf1;
+    border: 1px solid #232c38;
+    border-radius: 999px;
+    padding: 10px 16px;
+    font-size: 13px;
+    width: 240px;
+  }
+  label.campo { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #7d8896; }
+
+  #log {
+    width: min(600px, 92vw);
+    max-height: 26vh;
+    overflow-y: auto;
+    font-size: 13px;
+    line-height: 1.6;
+    background: #10151c;
+    border: 1px solid #1c2530;
+    border-radius: 12px;
+    padding: 12px 16px;
+  }
+  #log p { margin: 4px 0; }
+  #log .voce { color: #9fd3ff; }
+  #log .jarvis { color: #ffd479; }
+  #log .sistema { color: #6b7684; font-style: italic; }
+</style>
+</head>
+<body>
+  <h1>J A R V I S</h1>
+  <div id="status">desconectado</div>
+
+  <div id="painel-wrap">
+    <div id="painel">
+      <svg id="face" viewBox="0 0 300 180">
+        <defs>
+          <radialGradient id="gradOlho" cx="32%" cy="20%" r="85%">
+            <stop class="stop-brilho" offset="0%" />
+            <stop class="stop-meio" offset="22%" />
+            <stop class="stop-fim" offset="100%" />
+          </radialGradient>
+        </defs>
+        <g class="olho-grupo" id="olhoGrupoE">
+          <rect class="olho" id="olhoE" x="65" y="40" width="55" height="100" rx="27" />
+        </g>
+        <g class="olho-grupo" id="olhoGrupoD">
+          <rect class="olho" id="olhoD" x="180" y="40" width="55" height="100" rx="27" />
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <div id="tela-login" class="controles" style="flex-direction:column; align-items:stretch; width:min(280px,90vw);">
+    <input id="loginEmail" type="email" placeholder="Email" />
+    <input id="loginSenha" type="password" placeholder="Senha" />
+    <button id="btnLogin">Entrar</button>
+    <div id="loginErro" style="color:#ff7a5c; font-size:12px;"></div>
+  </div>
+
+  <div class="controles">
+    <button id="btnConectar" disabled>Conectar</button>
+    <button id="btnMic" disabled>🎤 Falar</button>
+  </div>
+
+  <div class="controles">
+    <label class="campo">Voz de reserva (so se o audio do servidor falhar)
+      <select id="vozSelect"></select>
+    </label>
+  </div>
+
+  <div class="controles">
+    <input id="inputTexto" type="text" placeholder="ou digite aqui..." disabled />
+    <button id="btnEnviar" disabled>Enviar</button>
+  </div>
+
+  <div id="log"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const olhoE = $('olhoE');
+const olhoD = $('olhoD');
+const status = $('status');
+const log = $('log');
+const btnConectar = $('btnConectar');
+const btnMic = $('btnMic');
+const inputTexto = $('inputTexto');
+const btnEnviar = $('btnEnviar');
+const vozSelect = $('vozSelect');
+
+let ws = null;
+let falando = false;
+let pulsoTimer = null;
+let fechaPulsoTimeout = null;
+
+function logar(quem, texto) {
+  const p = document.createElement('p');
+  p.className = quem;
+  p.textContent = (quem === 'voce' ? 'Voce: ' : quem === 'jarvis' ? 'Ozi: ' : '') + texto;
+  log.appendChild(p);
+  log.scrollTop = log.scrollHeight;
+}
+
+function aplicarEstado(estado) {
+  if (!estado) return;
+  // As classes vao no painel-wrap (nao no svg) - assim o brilho externo do
+  // painel e os olhos reagem juntos a mudanca de cor.
+  const painelWrap = $('painel-wrap');
+  painelWrap.classList.toggle('alerta', estado.nivel_alerta > 0.6);
+  painelWrap.classList.toggle('instavel', estado.estabilidade < 0.3);
+}
+
+// --- Piscar + "olhar ao redor" (vida no rosto quando ocioso) ---
+// Os dois grupos de olho compartilham o mesmo transform (translate pro
+// olhar + scaleY pro piscar), entao a gente guarda o estado das duas
+// animacoes e sempre aplica as duas juntas, senao uma sobrescreveria a outra.
+let olharDX = 0;
+let olharDY = 0;
+let piscando = false;
+
+function aplicarTransformOlhos() {
+  const escalaY = piscando ? 0.08 : 1;
+  const transform = `translate(${olharDX}px, ${olharDY}px) scaleY(${escalaY})`;
+  $('olhoGrupoE').style.transform = transform;
+  $('olhoGrupoD').style.transform = transform;
+}
+
+function piscar() {
+  piscando = true;
+  aplicarTransformOlhos();
+  setTimeout(() => {
+    piscando = false;
+    aplicarTransformOlhos();
+  }, 120);
+}
+setInterval(() => { if (!falando) piscar(); }, 3200 + Math.random() * 2500);
+
+// De vez em quando os olhos "olham" pra um lado por um instante, como se
+// estivesse prestando atencao em algo - efeito bem sutil, so pra nao ficar
+// parado feito estatua quando ninguem esta falando com ele.
+function olharAoRedor() {
+  olharDX = (Math.random() - 0.5) * 16;
+  olharDY = (Math.random() - 0.5) * 9;
+  aplicarTransformOlhos();
+  setTimeout(() => {
+    olharDX = 0;
+    olharDY = 0;
+    aplicarTransformOlhos();
+  }, 850 + Math.random() * 500);
+}
+setInterval(() => { if (!falando) olharAoRedor(); }, 4500 + Math.random() * 3500);
+
+// --- Olhos pulsando em sincronia com a fala (nao tem boca nesse design -
+// o "falar" aparece como um pulso de brilho/largura nos olhos, tipo um
+// medidor de audio simples) ---
+function pulsarOlhosFala() {
+  const amplitude = 1 + Math.random() * 0.18;
+  olhoE.style.transform = `scaleX(${amplitude})`;
+  olhoD.style.transform = `scaleX(${amplitude})`;
+  clearTimeout(fechaPulsoTimeout);
+  fechaPulsoTimeout = setTimeout(() => {
+    olhoE.style.transform = 'scaleX(1)';
+    olhoD.style.transform = 'scaleX(1)';
+  }, 95);
+}
+
+// `utter` e opcional: quando existe (voz do navegador), usamos o evento
+// 'boundary' pra sincronizar com cada palavra. Quando tocamos o audio real
+// que veio do servidor (Fish Audio), nao temos esse evento - so pulsamos
+// num intervalo fixo mesmo, que já da um efeito razoavel.
+function iniciarAnimacaoFala(utter) {
+  falando = true;
+  let usouBoundary = false;
+
+  if (utter) {
+    utter.addEventListener('boundary', () => {
+      usouBoundary = true;
+      pulsarOlhosFala();
+    });
+  }
+
+  pulsoTimer = setInterval(() => { if (!usouBoundary) pulsarOlhosFala(); }, 130);
+}
+
+function pararAnimacaoFala() {
+  falando = false;
+  clearInterval(pulsoTimer);
+  clearTimeout(fechaPulsoTimeout);
+  olhoE.style.transform = 'scaleX(1)';
+  olhoD.style.transform = 'scaleX(1)';
+}
+
+// --- Vozes disponiveis ---
+function popularVozes() {
+  const vozes = speechSynthesis.getVoices();
+  if (!vozes.length) return;
+  const pt = vozes.filter((v) => v.lang.toLowerCase().startsWith('pt'));
+  const lista = pt.length ? pt : vozes;
+
+  const atual = vozSelect.value;
+  vozSelect.innerHTML = '';
+  lista.forEach((v) => {
+    const opt = document.createElement('option');
+    opt.value = v.name;
+    opt.textContent = `${v.name} (${v.lang})`;
+    vozSelect.appendChild(opt);
+  });
+
+  const salva = localStorage.getItem('jarvisVoz');
+  if (salva && lista.some((v) => v.name === salva)) vozSelect.value = salva;
+  else if (atual && lista.some((v) => v.name === atual)) vozSelect.value = atual;
+}
+popularVozes();
+if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = popularVozes;
+vozSelect.addEventListener('change', () => localStorage.setItem('jarvisVoz', vozSelect.value));
+
+function falar(texto) {
+  if (!('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+
+  const utter = new SpeechSynthesisUtterance(texto);
+  const vozes = speechSynthesis.getVoices();
+  const voz = vozes.find((v) => v.name === vozSelect.value);
+  if (voz) {
+    utter.voice = voz;
+    utter.lang = voz.lang;
+  } else {
+    utter.lang = 'pt-BR';
+  }
+
+  utter.onstart = () => iniciarAnimacaoFala(utter);
+  utter.onend = pararAnimacaoFala;
+  utter.onerror = pararAnimacaoFala;
+  speechSynthesis.speak(utter);
+}
+
+// --- Audio de verdade, gerado pelo servidor (Fish Audio) ---
+// Guardamos o ultimo texto respondido pra poder cair pro fallback (voz do
+// navegador) se o servidor avisar que o TTS falhou (mensagem 'tts_erro').
+let ultimoTextoRespondido = '';
+
+function tocarAudioServidor(bufferArray) {
+  const blob = new Blob([bufferArray], { type: 'audio/wav' });
+  const url = URL.createObjectURL(blob);
+  const audio = new Audio(url);
+
+  audio.onplay = () => iniciarAnimacaoFala(); // sem utter -> so pulso generico
+  audio.onended = () => { pararAnimacaoFala(); URL.revokeObjectURL(url); };
+  audio.onerror = () => { pararAnimacaoFala(); URL.revokeObjectURL(url); };
+
+  audio.play().catch((erro) => {
+    // Navegador pode bloquear autoplay antes do usuario interagir com a
+    // pagina - nesse caso so avisamos, o texto ja apareceu no log de qualquer forma.
+    logar('sistema', 'nao foi possivel tocar o audio automaticamente: ' + erro.message);
+  });
+}
+
+function enviarTexto(texto) {
+  if (!texto.trim() || !ws || ws.readyState !== WebSocket.OPEN) return;
+  logar('voce', texto);
+  ws.send(JSON.stringify({ type: 'user_text', text: texto }));
+}
+
+const CHAVE_TOKEN = 'oziToken';
+
+async function tentarLogin() {
+  const email = $('loginEmail').value.trim();
+  const senha = $('loginSenha').value;
+  $('loginErro').textContent = '';
+
+  try {
+    const resp = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, senha }),
+    });
+    const dados = await resp.json();
+    if (dados.ok) {
+      localStorage.setItem(CHAVE_TOKEN, dados.token);
+      mostrarLogado();
+    } else {
+      $('loginErro').textContent = dados.erro || 'Nao foi possivel entrar.';
+    }
+  } catch {
+    $('loginErro').textContent = 'Nao foi possivel conectar ao servidor.';
+  }
+}
+
+function mostrarLogado() {
+  $('tela-login').style.display = 'none';
+  btnConectar.disabled = false;
+}
+
+$('btnLogin').addEventListener('click', tentarLogin);
+$('loginSenha').addEventListener('keydown', (e) => { if (e.key === 'Enter') tentarLogin(); });
+
+if (localStorage.getItem(CHAVE_TOKEN)) mostrarLogado();
+
+btnConectar.addEventListener('click', () => {
+  const token = localStorage.getItem(CHAVE_TOKEN);
+  if (!token) {
+    logar('sistema', 'faca login primeiro.');
+    return;
+  }
+
+  ws = new WebSocket(`ws://${location.hostname}:8787`);
+  // Sem isso, mensagens binarias chegam como Blob; ArrayBuffer e mais facil
+  // de passar direto pro Blob do audio depois.
+  ws.binaryType = 'arraybuffer';
+
+  ws.onopen = () => {
+    // Primeira mensagem OBRIGATORIA de toda conexao: autenticar com o
+    // token do login. O servidor ignora qualquer outra coisa ate isso.
+    ws.send(JSON.stringify({ type: 'autenticar', token }));
+  };
+
+  ws.onmessage = (event) => {
+    // O audio gerado pela Fish Audio chega como uma mensagem BINARIA
+    // separada (nao JSON) - e o mesmo protocolo que o dispositivo real usaria.
+    if (event.data instanceof ArrayBuffer) {
+      tocarAudioServidor(event.data);
+      return;
+    }
+
+    const payload = JSON.parse(event.data);
+    if (payload.type === 'autenticado') {
+      status.textContent = 'conectado';
+      status.classList.add('on');
+      btnConectar.disabled = true;
+      inputTexto.disabled = false;
+      btnEnviar.disabled = false;
+      if (reconhecimentoSuportado) btnMic.disabled = false;
+      logar('sistema', 'conectado ao Ozi');
+      aplicarEstado(payload.estado);
+    } else if (payload.type === 'erro_auth') {
+      logar('sistema', 'sessao expirada, faca login de novo.');
+      localStorage.removeItem(CHAVE_TOKEN);
+      ws.close();
+      $('tela-login').style.display = 'flex';
+    } else if (payload.type === 'assistant_text') {
+      logar('jarvis', payload.text);
+      aplicarEstado(payload.estado);
+      ultimoTextoRespondido = payload.text;
+      // Nao chama falar() aqui - o audio de verdade (Fish Audio) chega
+      // separado, como mensagem binaria, e quem toca ele e tocarAudioServidor().
+    } else if (payload.type === 'tts_erro') {
+      logar('sistema', 'audio do servidor falhou (' + payload.texto + '), usando a voz do navegador como reserva');
+      falar(ultimoTextoRespondido);
+    } else if (payload.type === 'erro') {
+      logar('sistema', 'erro: ' + payload.texto);
+    }
+  };
+
+  ws.onclose = () => {
+    status.textContent = 'desconectado';
+    status.classList.remove('on');
+    btnConectar.disabled = false;
+    btnMic.disabled = true;
+    inputTexto.disabled = true;
+    btnEnviar.disabled = true;
+    logar('sistema', 'desconectado');
+  };
+});
+
+btnEnviar.addEventListener('click', () => {
+  enviarTexto(inputTexto.value);
+  inputTexto.value = '';
+});
+inputTexto.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') btnEnviar.click();
+});
+
+// --- Reconhecimento de voz (STT) ---
+const SpeechRecognitionImpl = window.SpeechRecognition || window.webkitSpeechRecognition;
+const reconhecimentoSuportado = !!SpeechRecognitionImpl;
+let reconhecimento = null;
+let ouvindo = false;
+
+if (reconhecimentoSuportado) {
+  reconhecimento = new SpeechRecognitionImpl();
+  reconhecimento.lang = 'pt-BR';
+  reconhecimento.interimResults = false;
+  reconhecimento.continuous = false;
+
+  reconhecimento.onstart = () => {
+    ouvindo = true;
+    btnMic.classList.add('ativo');
+    btnMic.textContent = '🎤 Ouvindo...';
+  };
+
+  reconhecimento.onresult = (event) => {
+    const texto = event.results[0][0].transcript;
+    enviarTexto(texto);
+  };
+
+  reconhecimento.onerror = (event) => {
+    logar('sistema', 'erro no microfone: ' + event.error);
+  };
+
+  reconhecimento.onend = () => {
+    ouvindo = false;
+    btnMic.classList.remove('ativo');
+    btnMic.textContent = '🎤 Falar';
+  };
+
+  btnMic.addEventListener('click', () => {
+    if (ouvindo) reconhecimento.stop();
+    else reconhecimento.start();
+  });
+} else {
+  logar('sistema', 'reconhecimento de voz nao suportado neste navegador (use Chrome ou Edge). Use o campo de texto.');
+}
+</script>
+</body>
+</html>

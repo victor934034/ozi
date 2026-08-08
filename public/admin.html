@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<title>Painel Ozi</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --accent: #2f6bff;
+    --verde: #2ecc71;
+    --cinza: #4a5568;
+    --bg: #0a0c10;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: radial-gradient(circle at 50% 0%, #131824 0%, var(--bg) 60%);
+    color: #e8ecf1;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+  }
+
+  h1 {
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    font-size: 20px;
+    color: #e8ecf1;
+    margin: 0 0 4px;
+  }
+  .subtitulo { color: #7d8896; font-size: 13px; margin-bottom: 32px; }
+
+  /* --- Tela de login --- */
+  #tela-login {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    margin-top: 15vh;
+    width: min(320px, 90vw);
+  }
+  #tela-login input {
+    width: 100%;
+    background: #131822;
+    border: 1px solid #232c38;
+    border-radius: 10px;
+    padding: 12px 14px;
+    color: #e8ecf1;
+    font-size: 14px;
+  }
+  #tela-login button {
+    width: 100%;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  #tela-login button:hover { filter: brightness(1.1); }
+  #erro-login { color: #ff7a5c; font-size: 13px; min-height: 16px; }
+
+  /* --- Dashboard --- */
+  #dashboard { display: none; width: min(760px, 94vw); }
+  .topo-dashboard {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  #btnSair {
+    background: #131822;
+    border: 1px solid #232c38;
+    color: #7d8896;
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .resumo {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .resumo-card {
+    background: #10151c;
+    border: 1px solid #1c2530;
+    border-radius: 14px;
+    padding: 16px;
+  }
+  .resumo-card .valor { font-size: 24px; font-weight: 700; }
+  .resumo-card .label { font-size: 12px; color: #7d8896; margin-top: 4px; }
+
+  #lista-dispositivos { display: flex; flex-direction: column; gap: 12px; }
+
+  .card-dispositivo {
+    background: #10151c;
+    border: 1px solid #1c2530;
+    border-radius: 16px;
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .info-dispositivo { display: flex; align-items: center; gap: 14px; }
+  .bolinha-status {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--cinza);
+    flex-shrink: 0;
+  }
+  .bolinha-status.online {
+    background: var(--verde);
+    box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.6);
+    animation: pulsarStatus 2s infinite;
+  }
+  @keyframes pulsarStatus {
+    0% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.5); }
+    70% { box-shadow: 0 0 0 8px rgba(46, 204, 113, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); }
+  }
+
+  .nome-dispositivo { font-size: 15px; font-weight: 600; }
+  .device-id { font-size: 11px; color: #5a6472; font-family: ui-monospace, monospace; }
+  .status-texto { font-size: 12px; color: #7d8896; margin-top: 2px; }
+  .status-texto.online { color: var(--verde); }
+
+  .metricas-dispositivo { display: flex; gap: 24px; }
+  .metrica { text-align: right; }
+  .metrica .valor { font-size: 16px; font-weight: 700; }
+  .metrica .label { font-size: 11px; color: #7d8896; }
+
+  #vazio {
+    text-align: center;
+    color: #7d8896;
+    font-size: 13px;
+    padding: 40px 20px;
+    border: 1px dashed #232c38;
+    border-radius: 16px;
+  }
+</style>
+</head>
+<body>
+  <h1>PAINEL OZI</h1>
+  <div class="subtitulo">seus mini-robos, status e custo de API</div>
+
+  <div id="tela-login">
+    <input id="inputNome" type="text" placeholder="Nome (so pra criar conta)" style="display:none;" />
+    <input id="inputEmail" type="email" placeholder="Email" autofocus />
+    <input id="inputSenha" type="password" placeholder="Senha" />
+    <button id="btnEntrar">Entrar</button>
+    <button id="btnAlternarModo" style="background:transparent; color:#7d8896; font-size:12px;">
+      Nao tenho conta - criar uma
+    </button>
+    <div id="erro-login"></div>
+  </div>
+
+  <div id="dashboard">
+    <div class="topo-dashboard">
+      <div id="ultimaAtualizacao" style="font-size:12px; color:#5a6472;"></div>
+      <button id="btnSair">Sair</button>
+    </div>
+
+    <div class="resumo">
+      <div class="resumo-card">
+        <div class="valor" id="totalDispositivos">-</div>
+        <div class="label">dispositivos cadastrados</div>
+      </div>
+      <div class="resumo-card">
+        <div class="valor" id="totalOnline">-</div>
+        <div class="label">online agora</div>
+      </div>
+      <div class="resumo-card">
+        <div class="valor" id="totalGasto">-</div>
+        <div class="label">gasto total no Claude</div>
+      </div>
+    </div>
+
+    <div id="lista-dispositivos"></div>
+    <div id="vazio" style="display:none;">
+      Nenhum dispositivo cadastrado ainda.<br />
+      Ele aparece aqui automaticamente assim que conectar e se identificar pela primeira vez.
+    </div>
+  </div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const CHAVE_TOKEN = 'oziToken';
+let modoCadastro = false;
+
+function formatarMoeda(valor) {
+  return '$' + Number(valor).toFixed(4);
+}
+
+function tempoRelativo(isoString) {
+  if (!isoString) return 'nunca';
+  // O SQLite guarda em UTC sem timezone explicito - forcamos o parse como UTC.
+  const data = new Date(isoString.replace(' ', 'T') + 'Z');
+  const diffMs = Date.now() - data.getTime();
+  const min = Math.floor(diffMs / 60000);
+  if (min < 1) return 'agora mesmo';
+  if (min < 60) return `ha ${min} min`;
+  const horas = Math.floor(min / 60);
+  if (horas < 24) return `ha ${horas}h`;
+  const dias = Math.floor(horas / 24);
+  return `ha ${dias}d`;
+}
+
+async function buscarDispositivos(token) {
+  const resp = await fetch('/api/dispositivos', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (resp.status === 401) throw new Error('401');
+  if (!resp.ok) throw new Error('Falha ao buscar dispositivos');
+  const dados = await resp.json();
+  return dados.dispositivos;
+}
+
+function renderizar(dispositivos) {
+  const lista = $('lista-dispositivos');
+  const vazio = $('vazio');
+
+  $('totalDispositivos').textContent = dispositivos.length;
+  $('totalOnline').textContent = dispositivos.filter((d) => d.conectado).length;
+  $('totalGasto').textContent = formatarMoeda(
+    dispositivos.reduce((soma, d) => soma + d.custo_total_usd, 0)
+  );
+
+  if (!dispositivos.length) {
+    lista.innerHTML = '';
+    vazio.style.display = 'block';
+    return;
+  }
+  vazio.style.display = 'none';
+
+  lista.innerHTML = dispositivos
+    .map((d) => `
+      <div class="card-dispositivo">
+        <div class="info-dispositivo">
+          <div class="bolinha-status ${d.conectado ? 'online' : ''}"></div>
+          <div>
+            <div class="nome-dispositivo">${escaparHtml(d.nome)}</div>
+            <div class="device-id">${escaparHtml(d.device_id)}</div>
+            <div class="status-texto ${d.conectado ? 'online' : ''}">
+              ${d.conectado ? 'Ligado agora' : `Desligado - visto ${tempoRelativo(d.ultima_conexao)}`}
+            </div>
+          </div>
+        </div>
+        <div class="metricas-dispositivo">
+          <div class="metrica">
+            <div class="valor">${formatarMoeda(d.custo_total_usd)}</div>
+            <div class="label">gasto no Claude</div>
+          </div>
+          <div class="metrica">
+            <div class="valor">${d.total_chamadas_claude}</div>
+            <div class="label">respostas geradas</div>
+          </div>
+        </div>
+      </div>
+    `)
+    .join('');
+}
+
+function escaparHtml(texto) {
+  const div = document.createElement('div');
+  div.textContent = texto;
+  return div.innerHTML;
+}
+
+async function atualizar() {
+  const token = localStorage.getItem(CHAVE_TOKEN);
+  if (!token) return;
+
+  try {
+    const dispositivos = await buscarDispositivos(token);
+    renderizar(dispositivos);
+    $('ultimaAtualizacao').textContent = 'atualizado ' + new Date().toLocaleTimeString('pt-BR');
+  } catch (erro) {
+    if (erro.message === '401') {
+      localStorage.removeItem(CHAVE_TOKEN);
+      mostrarLogin();
+    }
+  }
+}
+
+function mostrarDashboard() {
+  $('tela-login').style.display = 'none';
+  $('dashboard').style.display = 'block';
+  atualizar();
+}
+
+function mostrarLogin() {
+  $('dashboard').style.display = 'none';
+  $('tela-login').style.display = 'flex';
+  $('inputSenha').value = '';
+  $('inputEmail').focus();
+}
+
+$('btnAlternarModo').addEventListener('click', () => {
+  modoCadastro = !modoCadastro;
+  $('inputNome').style.display = modoCadastro ? 'block' : 'none';
+  $('btnEntrar').textContent = modoCadastro ? 'Criar conta' : 'Entrar';
+  $('btnAlternarModo').textContent = modoCadastro ? 'Ja tenho conta - entrar' : 'Nao tenho conta - criar uma';
+  $('erro-login').textContent = '';
+});
+
+async function tentarLogin() {
+  const email = $('inputEmail').value.trim();
+  const senha = $('inputSenha').value;
+  const nome = $('inputNome').value.trim();
+  $('erro-login').textContent = '';
+
+  const rota = modoCadastro ? '/api/auth/registrar' : '/api/auth/login';
+  const corpo = modoCadastro ? { email, senha, nome } : { email, senha };
+
+  try {
+    const resp = await fetch(rota, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(corpo),
+    });
+    const dados = await resp.json();
+    if (dados.ok) {
+      localStorage.setItem(CHAVE_TOKEN, dados.token);
+      mostrarDashboard();
+    } else {
+      $('erro-login').textContent = dados.erro || 'Nao foi possivel entrar.';
+    }
+  } catch {
+    $('erro-login').textContent = 'Nao foi possivel conectar ao servidor.';
+  }
+}
+
+$('btnEntrar').addEventListener('click', tentarLogin);
+$('inputSenha').addEventListener('keydown', (e) => { if (e.key === 'Enter') tentarLogin(); });
+$('btnSair').addEventListener('click', () => {
+  localStorage.removeItem(CHAVE_TOKEN);
+  mostrarLogin();
+});
+
+// Se ja tem token salvo, tenta entrar direto sem pedir de novo.
+if (localStorage.getItem(CHAVE_TOKEN)) {
+  mostrarDashboard();
+} else {
+  mostrarLogin();
+}
+
+setInterval(() => {
+  if (localStorage.getItem(CHAVE_TOKEN)) atualizar();
+}, 5000);
+</script>
+</body>
+</html>

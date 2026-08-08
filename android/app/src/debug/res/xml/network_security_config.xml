@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  So entra em builds DEBUG (nunca numa versao que outra pessoa instalaria).
+  Libera cleartext (ws:// sem criptografia) pra facilitar testar contra o
+  servidor Jarvis/Ozi rodando local no seu PC, na Fase 1, antes de existir
+  HTTPS/WSS de verdade numa VPS.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

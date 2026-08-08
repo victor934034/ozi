@@ -1,0 +1,28 @@
+# Referencia pra testar o deploy localmente com Docker antes de subir no
+# EasyPanel (ou pra importar direto la, se preferir usar Compose em vez de
+# configurar os 2 apps na mao - ver README-DEPLOY.md pros dois caminhos).
+#
+# Uso local: docker compose up --build
+# Depois: cerebro em ws://localhost:8787, painel em http://localhost:8788
+
+services:
+  cerebro:
+    build: .
+    command: ["node", "src/server.js"]
+    ports:
+      - "8787:8787"
+    env_file: .env
+    volumes:
+      - dados_ozi:/app/data
+
+  web:
+    build: .
+    command: ["node", "src/webServer.js"]
+    ports:
+      - "8788:8788"
+    env_file: .env
+    volumes:
+      - dados_ozi:/app/data
+
+volumes:
+  dados_ozi:
