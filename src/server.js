@@ -11,6 +11,7 @@ import {
   registrarConexaoDispositivo,
   registrarDesconexaoDispositivo,
   registrarUsoClaude,
+  salvarTokenFcm,
 } from './memory/sqlite.js';
 import { runAgentLoop } from './agents/index.js';
 import { gerarAudio } from './tts/index.js';
@@ -335,6 +336,13 @@ export function iniciarServidor() {
         deviceId = payload.device_id;
         registrarConexaoDispositivo(usuario.id, deviceId, payload.nome || deviceId);
         console.log(`[server] dispositivo identificado: ${payload.nome || deviceId} (${deviceId}) do usuario ${usuario.email}`);
+        return;
+      }
+
+      // O app Android manda isso depois de se identificar, toda vez que o
+      // Firebase gera/renova o token de notificacao push desse aparelho.
+      if (payload.type === 'fcm_token') {
+        if (deviceId) salvarTokenFcm(usuario.id, deviceId, payload.token);
         return;
       }
 

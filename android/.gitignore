@@ -9,4 +9,3 @@ build/
 .externalNativeBuild
 .cxx
 app/src/main/assets/*.ppn
-app/google-services.json

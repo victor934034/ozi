@@ -103,6 +103,13 @@ db.exec(`
 // caiu sem rodar o evento de desconexao da vez anterior.
 db.prepare('UPDATE dispositivos SET conectado = 0').run();
 
+// Migracao aditiva (nao destrutiva): adiciona a coluna de token do
+// Firebase Cloud Messaging se ainda nao existir, sem apagar nada.
+const colunasDispositivos = db.prepare("PRAGMA table_info(dispositivos)").all();
+if (!colunasDispositivos.some((c) => c.name === 'fcm_token')) {
+  db.exec('ALTER TABLE dispositivos ADD COLUMN fcm_token TEXT');
+}
+
 // --- Usuarios ---
 
 export function criarUsuario({ email, senhaHash, nome, googleId }) {
@@ -231,6 +238,25 @@ export function registrarUsoClaude({ usuarioId, deviceId, tokensEntrada, tokensS
     `INSERT INTO uso_claude (usuario_id, device_id, tokens_entrada, tokens_saida, custo_usd)
      VALUES (?, ?, ?, ?, ?)`
   ).run(usuarioId, deviceId, tokensEntrada, tokensSaida, custoUsd);
+}
+
+// --- Notificacoes push (token do Firebase Cloud Messaging) ---
+
+export function salvarTokenFcm(usuarioId, deviceId, token) {
+  db.prepare('UPDATE dispositivos SET fcm_token = ? WHERE usuario_id = ? AND device_id = ?').run(
+    token,
+    usuarioId,
+    deviceId
+  );
+}
+
+// Todos os tokens FCM validos de um usuario (pode ter mais de um
+// dispositivo Android) - usado pra mandar notificacao pra todos de uma vez.
+export function buscarTokensFcm(usuarioId) {
+  return db
+    .prepare('SELECT fcm_token FROM dispositivos WHERE usuario_id = ? AND fcm_token IS NOT NULL')
+    .all(usuarioId)
+    .map((linha) => linha.fcm_token);
 }
 
 export default db;

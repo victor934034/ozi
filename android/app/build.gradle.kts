@@ -2,14 +2,22 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("com.google.gms.google-services")
 }
 
 android {
+    // "namespace" e so o nome do pacote Kotlin internamente (gera R.java,
+    // etc) - NAO precisa bater com o Firebase. Quem precisa bater e o
+    // "applicationId" abaixo, que e o identificador real do app instalado.
     namespace = "com.ozi.assistant"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.ozi.assistant"
+        // Precisa ser EXATAMENTE o package_name cadastrado no Firebase
+        // (ver android/app/google-services.json) - foi criado la como
+        // "Ozi.origin0978", entao usamos o mesmo aqui em vez de pedir pra
+        // recriar o app no Firebase com outro nome.
+        applicationId = "Ozi.origin0978"
         minSdk = 26
         targetSdk = 35
         versionCode = 1

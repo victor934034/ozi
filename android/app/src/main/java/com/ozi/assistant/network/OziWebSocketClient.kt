@@ -98,6 +98,14 @@ class OziWebSocketClient(
         webSocket?.send(payload.toString())
     }
 
+    fun enviarTokenFcm(tokenFcm: String) {
+        val payload = JSONObject().apply {
+            put("type", "fcm_token")
+            put("token", tokenFcm)
+        }
+        webSocket?.send(payload.toString())
+    }
+
     private fun autenticar() {
         val payload = JSONObject().apply {
             put("type", "autenticar")

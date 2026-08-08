@@ -70,6 +70,14 @@ export const config = {
     // Devices -> Link App Account). Uso pessoal = so uma conta por enquanto.
     uid: process.env.TUYA_UID,
   },
+
+  firebase: {
+    // Conteudo INTEIRO (numa linha so) do JSON da conta de servico gerada
+    // em Firebase Console -> Configuracoes do projeto -> Contas de servico
+    // -> Gerar nova chave privada. Usado pra ENVIAR notificacoes push
+    // (diferente do google-services.json do app, que so RECEBE).
+    serviceAccountJson: process.env.FIREBASE_SERVICE_ACCOUNT || null,
+  },
 };
 
 if (!config.anthropicApiKey) {
