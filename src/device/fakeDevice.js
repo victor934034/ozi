@@ -46,7 +46,7 @@ async function obterCredenciais() {
 
 async function autenticar() {
   const { email, senha } = await obterCredenciais();
-  const urlBase = `http://localhost:${config.webPort}`;
+  const urlBase = `http://localhost:${config.port}`;
 
   const respLogin = await fetch(`${urlBase}/api/auth/login`, {
     method: 'POST',
@@ -82,7 +82,7 @@ async function main() {
     process.exit(1);
   }
 
-  const url = `ws://localhost:${config.wsPort}`;
+  const url = `ws://localhost:${config.port}`;
   const ws = new WebSocket(url);
 
   ws.on('open', () => {

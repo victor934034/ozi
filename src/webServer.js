@@ -77,7 +77,11 @@ function servirArquivoEstatico(req, res) {
   });
 }
 
-const server = http.createServer(async (req, res) => {
+// Devolve o http.Server pronto (com todas as rotas), mas SEM chamar
+// .listen() ainda - quem decide em qual porta escutar e src/app.js (que
+// tambem anexa o WebSocket nesse mesmo servidor).
+export function criarServidorHttp() {
+  return http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
 
   // --- Cadastro por email + senha ---
@@ -133,10 +137,6 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  servirArquivoEstatico(req, res);
-});
-
-server.listen(config.webPort, () => {
-  console.log(`[web] pagina do Ozi em http://localhost:${config.webPort}`);
-  console.log(`[web] painel administrativo em http://localhost:${config.webPort}/admin.html`);
-});
+    servirArquivoEstatico(req, res);
+  });
+}

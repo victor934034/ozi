@@ -1,15 +1,10 @@
 # Imagem do "cerebro" do Ozi (Node.js) pra rodar numa VPS via EasyPanel.
 #
-# O projeto tem DOIS processos separados que escutam portas diferentes:
-#   - src/server.js    (WebSocket - a conversa em si)      -> porta 8787
-#   - src/webServer.js (HTTP - painel admin, paginas, API)  -> porta 8788
-#
-# No EasyPanel, crie DOIS "apps" a partir desta mesma imagem/Dockerfile,
-# cada um com um Start Command diferente (ver README-DEPLOY.md):
-#   app 1: node src/server.js     -> dominio tipo ws.seudominio.com
-#   app 2: node src/webServer.js  -> dominio tipo app.seudominio.com
-# Os dois PRECISAM compartilhar o mesmo volume de dados (ver docker-compose.yml
-# de referencia) - e o mesmo arquivo data/jarvis.db (usuarios, conversas, etc).
+# UM SO processo/porta: src/app.js sobe HTTP (paginas, API REST) e
+# WebSocket (a conversa em si) no mesmo servidor, escutando a porta
+# definida por PORT (padrao 8787). Isso existe pra funcionar direto em
+# qualquer PaaS/EasyPanel que so mapeia 1 porta por app - nao precisa criar
+# dois "apps"/dominios nem sobrescrever Start Command.
 
 FROM node:22-bookworm-slim AS builder
 
@@ -44,8 +39,6 @@ COPY package.json ./
 # persistente (senao voce perde usuarios/memoria a cada deploy novo).
 VOLUME ["/app/data"]
 
-EXPOSE 8787 8788
+EXPOSE 8787
 
-# Padrao: sobe o "cerebro" (WebSocket). No segundo app do EasyPanel,
-# sobrescreva o Start Command pra "node src/webServer.js".
-CMD ["node", "src/server.js"]
+CMD ["node", "src/app.js"]

@@ -294,8 +294,12 @@ async function processarMensagem(texto, historicoConversa, usuarioId, deviceId) 
   return { resposta, ehConversa: true };
 }
 
-export function iniciarServidor() {
-  const wss = new WebSocketServer({ port: config.wsPort });
+// `httpServer` (opcional): se passado, o WebSocket "pega carona" nesse
+// mesmo servidor HTTP (mesma porta - a biblioteca `ws` cuida de responder
+// ao handshake de upgrade automaticamente), em vez de abrir uma porta
+// propria. E assim que src/app.js usa isso, unificando tudo numa porta so.
+export function iniciarServidor(httpServer) {
+  const wss = httpServer ? new WebSocketServer({ server: httpServer }) : new WebSocketServer({ port: config.port });
 
   wss.on('connection', (ws) => {
     console.log('[server] cliente conectado (nao autenticado ainda)');
@@ -382,8 +386,8 @@ export function iniciarServidor() {
     });
   });
 
-  console.log(`[server] Ozi brain ouvindo em ws://localhost:${config.wsPort}`);
+  if (!httpServer) {
+    console.log(`[server] Ozi brain ouvindo em ws://localhost:${config.port}`);
+  }
   return wss;
 }
-
-iniciarServidor();

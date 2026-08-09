@@ -6,11 +6,18 @@ O projeto virou multiusuario nesta etapa - qualquer pessoa com o link pode
 criar conta e usar o proprio Ozi (dados isolados por usuario). Isso muda um
 pouco o que precisa configurar comparado a Fase 1 local.
 
+Desde esta versao, o servidor roda como **UM SO processo numa unica porta**
+(`src/app.js`) - a mesma porta serve as paginas, a API REST de login e o
+WebSocket da conversa. Isso existe porque a maioria dos PaaS (EasyPanel
+incluso) so mapeia uma porta por app, e ter dois processos separados so
+gerava confusao (dominio apontando pra porta errada, processo errado
+subindo, etc).
+
 ## 1. Variaveis de ambiente
 
-No EasyPanel, cada "app" tem uma aba de Environment Variables. Copie o
-conteudo do seu `.env` local (NUNCA comite esse arquivo no git) - as
-chaves obrigatorias sao:
+No EasyPanel, o app tem uma aba de Environment Variables. Copie o conteudo
+do seu `.env` local (NUNCA comite esse arquivo no git) - as chaves
+obrigatorias sao:
 
 ```
 ANTHROPIC_API_KEY=...
@@ -23,49 +30,42 @@ TUYA_PROJECT_CODE=...
 TUYA_ENDPOINT=...
 TUYA_UID=...
 GOOGLE_CLIENT_ID=...        (depois que configurar o Firebase)
+FIREBASE_SERVICE_ACCOUNT=...
 ```
 
-`JARVIS_WS_PORT`/`JARVIS_WEB_PORT` nao precisam ser definidas - o EasyPanel
-controla a porta externa; o container sempre escuta 8787/8788 internamente
-(ver Dockerfile).
+Nao e obrigatorio definir `PORT` - o padrao e `8787`. Se o EasyPanel exigir
+uma porta especifica, defina `PORT` com esse valor.
 
-## 2. Criar os dois apps
+## 2. Criar o app
 
-Este projeto sobe **dois processos separados** a partir da MESMA imagem
-Docker (ver comentario no topo do `Dockerfile`):
+Um unico app a partir deste repositorio (Dockerfile na raiz):
 
-1. **App "ozi-cerebro"**: build a partir deste repositorio (Dockerfile na
-   raiz), Start Command = `node src/server.js`, porta interna 8787,
-   protocolo **WebSocket** - o dominio dele e o que voce coloca em
-   "Servidor" nas Configuracoes do app Android/pagina web, como
-   `wss://ws.seudominio.com` (o EasyPanel/Traefik cuida do TLS - use
-   `wss://`, nunca `ws://`, em producao).
+- **Fonte**: este repositorio Git, build via Dockerfile
+- **Start Command**: nao precisa sobrescrever - o `CMD` do Dockerfile ja e
+  `node src/app.js`
+- **Porta interna**: `8787` (a que o container escuta - ver `EXPOSE` no
+  Dockerfile e a variavel `PORT`)
+- **Dominio**: aponte o dominio/subdominio do EasyPanel pra essa mesma
+  porta interna (8787). E nele que ficam TUDO: a pagina inicial (`/`), o
+  painel (`/admin.html`), a API REST (`/api/...`) e o WebSocket (mesmo
+  host/porta, so troca `https://` por `wss://`).
 
-2. **App "ozi-web"**: mesma imagem, Start Command = `node src/webServer.js`,
-   porta interna 8788, protocolo HTTP - o dominio dele e onde fica o painel
-   (`https://app.seudominio.com/admin.html`) e a API REST de login
-   (`/api/auth/login`, `/api/auth/registrar`).
+**Volume**: monte um volume persistente em `/app/data` - e onde fica o
+banco SQLite (usuarios, conversas, memoria). Sem isso, cada novo deploy
+apaga os usuarios cadastrados.
 
-**Os dois APPS PRECISAM DO MESMO VOLUME** apontando pra `/app/data` -
-e onde fica o banco SQLite com usuarios, conversas e memoria. Se cada um
-tiver seu proprio volume, os usuarios cadastrados via "ozi-web" nao vao
-existir pro "ozi-cerebro" (mesmo banco, tem que ser o mesmo arquivo).
-No EasyPanel isso normalmente se configura criando um "Volume" compartilhado
-e montando ele nos dois apps no mesmo caminho.
+## 3. DNS / dominio
 
-## 3. DNS / dominios
+Aponte um subdominio pro app (o EasyPanel cuida do certificado TLS
+automatico via Let's Encrypt quando voce adiciona o dominio):
 
-Aponte dois subdominios pros dois apps (o EasyPanel cuida do certificado
-TLS automatico via Let's Encrypt quando voce adiciona o dominio no app):
-
-- `ws.seudominio.com` -> app ozi-cerebro (porta 8787)
-- `app.seudominio.com` -> app ozi-web (porta 8788)
+- `app.seudominio.com` -> este app (porta interna 8787)
 
 ## 4. Depois do primeiro deploy
 
-- Abra `https://app.seudominio.com/admin.html`, crie sua conta
-- No app Android (Configuracoes), coloque `wss://ws.seudominio.com` como
-  URL do servidor
+- Abra `https://app.seudominio.com/`, crie sua conta
+- No app Android (tela de login, campo "Servidor"), coloque
+  `wss://app.seudominio.com` como URL do servidor
 - Teste uma conversa completa antes de considerar "no ar" de verdade
 
 ## 5. O que ainda fica pendente (fora do escopo deste deploy)

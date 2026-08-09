@@ -407,7 +407,10 @@ btnConectar.addEventListener('click', () => {
     return;
   }
 
-  ws = new WebSocket(`ws://${location.hostname}:8787`);
+  // Mesma porta/host da propria pagina (servidor unico) - usa wss:// se a
+  // pagina foi carregada por https:// (ex: dominio do EasyPanel).
+  const protocoloWs = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(`${protocoloWs}//${location.host}`);
   // Sem isso, mensagens binarias chegam como Blob; ArrayBuffer e mais facil
   // de passar direto pro Blob do audio depois.
   ws.binaryType = 'arraybuffer';

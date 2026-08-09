@@ -22,16 +22,12 @@ class AuthApi(private val urlServidorWs: String) {
     private val cliente = OkHttpClient()
     private val JSON = "application/json; charset=utf-8".toMediaType()
 
-    // O servidor serve tanto o WebSocket (porta 8787 por padrao) quanto a
-    // API REST/pagina web (porta 8788) - por enquanto assume a mesma
-    // convencao de porta do projeto local. Quando isso for pra uma VPS
-    // atras de wss://dominio.com, o ideal e a API REST estar no mesmo
-    // dominio numa rota tipo /api/... (ajuste aqui se a topologia mudar).
+    // O servidor e um processo unico: mesma porta/dominio serve o WebSocket
+    // e a API REST (ver src/app.js) - so troca o esquema da URL.
     private fun urlBaseHttp(): String {
         return urlServidorWs
             .replace("wss://", "https://")
             .replace("ws://", "http://")
-            .replace(":8787", ":8788")
     }
 
     suspend fun login(email: String, senha: String): UsuarioLogado = withContext(Dispatchers.IO) {

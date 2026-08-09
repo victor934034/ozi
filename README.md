@@ -18,16 +18,11 @@ os tokens de login, nao pode ficar vazio.
 
 ## Rodar
 
-Em um terminal, suba o servidor WebSocket (o "cerebro"):
+Em um terminal, suba o servidor (paginas, API de login e WebSocket, tudo
+num so processo/porta):
 
 ```
-npm run server
-```
-
-Em outro, suba o servidor web (painel admin + API de login):
-
-```
-npm run web
+npm start
 ```
 
 Em outro, suba o dispositivo simulado (o "corpo" fake):
@@ -54,13 +49,8 @@ animado que reage ao humor. Ela usa as APIs de voz nativas do navegador
 (Web Speech API), entao nao precisa instalar nada extra - so funciona melhor
 no Chrome ou Edge (Firefox nao suporta reconhecimento de voz por enquanto).
 
-Com o servidor (`npm run server`) rodando, em outro terminal:
-
-```
-npm run web
-```
-
-Abra `http://localhost:8788` no Chrome/Edge, clique em "Conectar" e depois
+Com o servidor (`npm start`) rodando, abra `http://localhost:8787` no
+Chrome/Edge, clique em "Conectar" e depois
 em "🎤 Falar" (o navegador vai pedir permissao de microfone - autorize).
 Fale a frase, solte, e o Jarvis responde por voz (TTS) e o rosto mexe a boca
 enquanto fala. O rosto tambem fica vermelho quando `nivel_alerta` sobe e
@@ -187,10 +177,11 @@ gastou de tokens no Claude (em dolar, calculado com o preco oficial da API).
   `config.claudePrecos` em `src/config.js` - Sonnet 5: $2/MTok entrada,
   $10/MTok saida, promocional ate 31/08/2026).
 
-**Acesso:** protegido por senha (`ADMIN_PASSWORD` no `.env`). Sem essa
-variavel definida, a API do painel recusa QUALQUER acesso (falha fechada de
-proposito). Abra `http://localhost:8788/admin.html`, entre com a senha - ela
-fica salva no navegador (`localStorage`) pra nao pedir de novo toda hora.
+**Acesso:** protegido por login de usuario (email + senha, ou Google) - nao
+existe mais senha fixa de admin. Cada usuario ve so os proprios
+dispositivos. Abra `http://localhost:8787/admin.html`, entre com sua conta -
+o token fica salvo no navegador (`localStorage`) pra nao pedir login toda
+hora.
 
 ## Nota sobre a substituicao do ChromaDB
 

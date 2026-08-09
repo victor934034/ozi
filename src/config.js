@@ -10,8 +10,13 @@ export const config = {
   dataDir: path.join(rootDir, 'data'),
   anthropicApiKey: process.env.ANTHROPIC_API_KEY,
   claudeModel: process.env.CLAUDE_MODEL || 'claude-sonnet-5',
-  wsPort: Number(process.env.JARVIS_WS_PORT) || 8787,
-  webPort: Number(process.env.JARVIS_WEB_PORT) || 8788,
+  // UMA porta so pra tudo (WebSocket + HTTP/API/paginas) - o servidor roda
+  // como um unico processo (ver src/app.js). Isso existe pra funcionar bem
+  // em qualquer PaaS/EasyPanel/etc que so mapeia 1 porta por app - antes
+  // tinha 2 portas/2 processos separados e isso causava confusao (esquecer
+  // de subir um dos dois, ou o painel so conseguir mapear uma porta).
+  // "PORT" e o nome de variavel que a maioria dos PaaS ja usa por padrao.
+  port: Number(process.env.PORT) || 8787,
 
   // Qual provedor de TTS (texto -> audio) usar. Hoje so existe "fish-audio",
   // mas o resto do sistema nunca fala com o provedor diretamente - so com

@@ -5,9 +5,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "server": "node src/server.js",
-    "device": "node src/device/fakeDevice.js",
-    "web": "node src/webServer.js"
+    "start": "node src/app.js",
+    "device": "node src/device/fakeDevice.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
