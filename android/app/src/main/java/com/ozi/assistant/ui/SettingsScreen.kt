@@ -61,13 +61,19 @@ fun SettingsScreen(
 
             Spacer(Modifier.size(16.dp))
 
-            Text("Servidor")
+            Text("Servidor (avancado)")
             OutlinedTextField(
                 value = urlServidor,
                 onValueChange = { urlServidor = it },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("wss://seu-servidor.com ou ws://192.168.0.10:8787") },
+                placeholder = { Text(com.ozi.assistant.SERVIDOR_PADRAO) },
                 singleLine = true,
+            )
+            Text(
+                "Deixe em branco pra usar o servidor padrao do Ozi. So preencha se voce " +
+                    "estiver rodando seu proprio servidor.",
+                color = OziTextoFraco,
+                style = MaterialTheme.typography.bodySmall,
             )
 
             Spacer(Modifier.size(16.dp))

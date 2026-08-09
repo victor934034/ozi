@@ -49,13 +49,7 @@ class OziRepository(private val context: Context) {
 
     // --- Login ---
 
-    private fun authApi(): AuthApi {
-        // A URL do servidor so e conhecida depois de configurada - se ainda
-        // nao foi, usa um placeholder que so falha quando de fato tentar
-        // chamar a rede (a tela de login trata esse erro).
-        val urlBase = prefs.urlServidor.ifBlank { "ws://localhost:8787" }
-        return AuthApi(urlBase)
-    }
+    private fun authApi(): AuthApi = AuthApi(prefs.urlServidorEfetiva)
 
     suspend fun entrarComEmailSenha(email: String, senha: String) {
         val usuario = authApi().login(email, senha)
@@ -92,15 +86,10 @@ class OziRepository(private val context: Context) {
             _uiState.update { it.copy(ultimoErro = "Faca login primeiro.") }
             return
         }
-        if (!prefs.estaConfigurado) {
-            _uiState.update { it.copy(ultimoErro = "Configure a URL do servidor primeiro.") }
-            return
-        }
-
         _uiState.update { it.copy(conexao = EstadoConexao.CONECTANDO) }
 
         wsClient = OziWebSocketClient(
-            urlServidor = prefs.urlServidor,
+            urlServidor = prefs.urlServidorEfetiva,
             tokenAcesso = token,
             deviceId = prefs.deviceId,
             deviceNome = prefs.nomeDispositivo,

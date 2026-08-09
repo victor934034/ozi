@@ -73,9 +73,7 @@ class MainActivity : ComponentActivity() {
             !estado.logado -> {
                 LoginScreen(
                     googleDisponivel = googleWebClientId.isNotBlank(),
-                    urlServidorInicial = viewModel.preferencias().urlServidor,
                     erroExterno = erroGoogle,
-                    aoMudarUrlServidor = { viewModel.preferencias().urlServidor = it },
                     aoEntrarComEmailSenha = { email, senha ->
                         viewModel.entrarComEmailSenha(email, senha)
                         aposLogin()

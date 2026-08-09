@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import com.ozi.assistant.SERVIDOR_PADRAO
 import java.util.UUID
 
 /**
@@ -30,9 +31,15 @@ class SecurePrefs(context: Context) {
         )
     }
 
+    // Usuario final nunca precisa preencher isso - vem pronto com o
+    // servidor de producao (SERVIDOR_PADRAO). So fica em branco aqui se
+    // alguem sobrescrever manualmente em Configuracoes (self-hosting).
     var urlServidor: String
         get() = prefs.getString(CHAVE_URL_SERVIDOR, "") ?: ""
         set(value) { prefs.edit().putString(CHAVE_URL_SERVIDOR, value).apply() }
+
+    val urlServidorEfetiva: String
+        get() = urlServidor.ifBlank { SERVIDOR_PADRAO }
 
     var nomeDispositivo: String
         get() = prefs.getString(CHAVE_NOME_DISPOSITIVO, "Ozi (Android)") ?: "Ozi (Android)"
@@ -85,8 +92,9 @@ class SecurePrefs(context: Context) {
             return novo
         }
 
+    // Sempre true agora - ha sempre um SERVIDOR_PADRAO embutido no app.
     val estaConfigurado: Boolean
-        get() = urlServidor.isNotBlank()
+        get() = urlServidorEfetiva.isNotBlank()
 
     companion object {
         private const val CHAVE_URL_SERVIDOR = "url_servidor"
