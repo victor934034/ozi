@@ -14,6 +14,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,6 +31,9 @@ import kotlinx.coroutines.launch
 @Composable
 fun LoginScreen(
     googleDisponivel: Boolean,
+    urlServidorInicial: String,
+    erroExterno: String?,
+    aoMudarUrlServidor: (String) -> Unit,
     aoEntrarComEmailSenha: suspend (email: String, senha: String) -> Unit,
     aoCriarConta: suspend (email: String, senha: String, nome: String) -> Unit,
     aoClicarGoogle: () -> Unit,
@@ -38,9 +42,17 @@ fun LoginScreen(
     var email by remember { mutableStateOf("") }
     var senha by remember { mutableStateOf("") }
     var nome by remember { mutableStateOf("") }
+    var urlServidor by remember { mutableStateOf(urlServidorInicial) }
     var carregando by remember { mutableStateOf(false) }
     var erro by remember { mutableStateOf<String?>(null) }
     val escopo = rememberCoroutineScope()
+
+    // Erros que acontecem FORA desta tela (ex: login com Google, que roda
+    // via Credential Manager na Activity) chegam aqui de fora - sem isso o
+    // usuario nao teria como saber que o Google Sign-In falhou e por que.
+    LaunchedEffect(erroExterno) {
+        if (erroExterno != null) erro = erroExterno
+    }
 
     Column(
         modifier = Modifier
@@ -57,6 +69,22 @@ fun LoginScreen(
             style = MaterialTheme.typography.bodyMedium,
         )
         Spacer(Modifier.size(32.dp))
+
+        OutlinedTextField(
+            value = urlServidor,
+            onValueChange = { urlServidor = it; aoMudarUrlServidor(it.trim()) },
+            label = { Text("Servidor") },
+            placeholder = { Text("ws://10.0.2.2:8787 (emulador) ou ws://SEU_IP:8787") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+        )
+        Text(
+            "\"localhost\" no celular aponta pro proprio aparelho, nao pro seu PC. " +
+                "No emulador use 10.0.2.2; num celular de verdade, use o IP do seu PC na mesma rede Wi-Fi.",
+            color = OziTextoFraco,
+            style = MaterialTheme.typography.bodySmall,
+        )
+        Spacer(Modifier.size(16.dp))
 
         if (modoCadastro) {
             OutlinedTextField(

@@ -66,12 +66,16 @@ class MainActivity : ComponentActivity() {
     private fun TelaPrincipal() {
         val estado by viewModel.uiState.collectAsState()
         var telaConfiguracoes by remember { mutableStateOf(false) }
+        var erroGoogle by remember { mutableStateOf<String?>(null) }
         val googleWebClientId = stringResource(R.string.google_web_client_id)
 
         when {
             !estado.logado -> {
                 LoginScreen(
                     googleDisponivel = googleWebClientId.isNotBlank(),
+                    urlServidorInicial = viewModel.preferencias().urlServidor,
+                    erroExterno = erroGoogle,
+                    aoMudarUrlServidor = { viewModel.preferencias().urlServidor = it },
                     aoEntrarComEmailSenha = { email, senha ->
                         viewModel.entrarComEmailSenha(email, senha)
                         aposLogin()
@@ -80,7 +84,14 @@ class MainActivity : ComponentActivity() {
                         viewModel.criarConta(email, senha, nome)
                         aposLogin()
                     },
-                    aoClicarGoogle = { iniciarLoginGoogle(googleWebClientId) },
+                    aoClicarGoogle = {
+                        erroGoogle = null
+                        iniciarLoginGoogle(
+                            webClientId = googleWebClientId,
+                            aoErro = { erroGoogle = it },
+                            aoSucesso = { aposLogin() },
+                        )
+                    },
                 )
             }
             telaConfiguracoes -> {
@@ -122,7 +133,7 @@ class MainActivity : ComponentActivity() {
     // Precisa do google_web_client_id (res/values/strings.xml) configurado
     // com o "Web client ID" do projeto Firebase - sem isso o botao fica
     // desabilitado na tela de login (ver LoginScreen.kt).
-    private fun iniciarLoginGoogle(webClientId: String) {
+    private fun iniciarLoginGoogle(webClientId: String, aoErro: (String) -> Unit, aoSucesso: () -> Unit) {
         if (webClientId.isBlank()) return
 
         val opcaoGoogle = GetGoogleIdOption.Builder()
@@ -140,13 +151,16 @@ class MainActivity : ComponentActivity() {
                 val resultado = credentialManager.getCredential(this@MainActivity, request)
                 val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(resultado.credential.data)
                 viewModel.entrarComGoogle(googleIdTokenCredential.idToken)
-                aposLogin()
+                aoSucesso()
             } catch (e: GetCredentialException) {
-                // Usuario cancelou ou nao tem conta Google configurada no
-                // aparelho - nao e um erro fatal, so volta pra tela de login.
+                // Cobre desde "usuario cancelou" ate "nenhuma conta Google
+                // configurada no aparelho/emulador" ou "Play Services
+                // ausente" - mostra a mensagem real em vez de falhar calado.
+                aoErro(e.message ?: "Nao foi possivel usar login com Google neste aparelho (${e.type}).")
             } catch (e: Exception) {
-                // Login no backend falhou (ex: GOOGLE_CLIENT_ID nao bate no
-                // servidor) - o erro fica visivel no proximo estado da tela.
+                // Login no backend falhou (ex: GOOGLE_CLIENT_ID nao bate,
+                // servidor fora do ar).
+                aoErro(e.message ?: "Erro ao entrar com Google.")
             }
         }
     }
