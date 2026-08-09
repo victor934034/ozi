@@ -10,6 +10,9 @@
 import { config } from './config.js';
 import { criarServidorHttp } from './webServer.js';
 import { iniciarServidor } from './server.js';
+import { precarregarEmbedder } from './memory/vector.js';
+
+precarregarEmbedder();
 
 const httpServer = criarServidorHttp();
 iniciarServidor(httpServer);

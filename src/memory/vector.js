@@ -1,4 +1,6 @@
+import path from 'node:path';
 import db from './sqlite.js';
+import { config } from '../config.js';
 
 // Fase 1 usa embeddings locais (Xenova/transformers, sem custo de API e sem
 // precisar rodar um servidor ChromaDB separado). Troque por ChromaDB depois
@@ -7,7 +9,14 @@ let embedderPromise = null;
 
 async function getEmbedder() {
   if (!embedderPromise) {
-    const { pipeline } = await import('@xenova/transformers');
+    const { pipeline, env } = await import('@xenova/transformers');
+    // Sem isso, o cache do modelo baixado fica fora do volume persistente
+    // (/app/data) - todo redeploy/restart do container perderia o cache e
+    // baixaria o modelo (~dezenas de MB) de novo na primeira mensagem do
+    // primeiro usuario, causando uma demora grande so nessa primeira vez.
+    // Apontando pro dataDir, o download so acontece uma vez de verdade.
+    env.cacheDir = path.join(config.dataDir, 'modelos-cache');
+
     // "all-MiniLM-L6-v2" (usado antes) e treinado majoritariamente em ingles
     // e discrimina mal frases em portugues (diferenca de similaridade entre
     // texto relacionado e nao-relacionado era de so ~0.06, na pratica
@@ -16,6 +25,19 @@ async function getEmbedder() {
     embedderPromise = pipeline('feature-extraction', 'Xenova/paraphrase-multilingual-MiniLM-L12-v2');
   }
   return embedderPromise;
+}
+
+// Carrega o modelo de embeddings ja na subida do servidor, em vez de deixar
+// isso acontecer so quando a primeira mensagem de um usuario chegar - assim
+// quem paga esse custo (alguns segundos) e o boot do processo, nao a
+// experiencia de quem esta conversando.
+export function precarregarEmbedder() {
+  const inicio = Date.now();
+  getEmbedder()
+    .then(() => console.log(`[memoria] modelo de embeddings pronto (${Date.now() - inicio}ms)`))
+    .catch((erro) => {
+      console.error('[memoria] erro pre-carregando modelo de embeddings:', erro.message);
+    });
 }
 
 async function embed(text) {
