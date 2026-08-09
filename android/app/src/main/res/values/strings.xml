@@ -9,5 +9,5 @@
          -> Autenticacao -> Sign-in method -> Google -> pega o "Web client ID"
          (nao e o Android client ID). Sem isso, o botao de Google fica desativado
          mas o resto do app funciona normal (login por email/senha). -->
-    <string name="google_web_client_id"></string>
+    <string name="google_web_client_id">906613415826-nv1tjs87cfdllgqdufsr3rsbrc83lcvg.apps.googleusercontent.com</string>
 </resources>

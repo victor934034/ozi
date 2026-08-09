@@ -12,7 +12,12 @@
           "package_name": "Ozi.origin0978"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "906613415826-nv1tjs87cfdllgqdufsr3rsbrc83lcvg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyApf2i50Z1yrloBufTni78zXb-E9kcSY7s"
@@ -20,7 +25,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "906613415826-nv1tjs87cfdllgqdufsr3rsbrc83lcvg.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

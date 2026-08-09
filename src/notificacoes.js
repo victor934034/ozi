@@ -9,8 +9,15 @@
 //
 // Sem isso configurado, notificarUsuario() so loga um aviso e nao quebra
 // nada - o resto do sistema funciona normal sem notificacoes.
+//
+// Nota: firebase-admin v12+ usa uma API modular (importa de
+// "firebase-admin/app" e "firebase-admin/messaging" separadamente, em vez
+// de um objeto "admin" unico tipo `admin.credential.cert()`) - se voce
+// achar exemplos antigos na internet usando `admin.credential.cert(...)`,
+// eles sao pra uma versao mais antiga e nao funcionam mais.
 
-import admin from 'firebase-admin';
+import { initializeApp, cert, getApps } from 'firebase-admin/app';
+import { getMessaging } from 'firebase-admin/messaging';
 import { config } from './config.js';
 import { buscarTokensFcm } from './memory/sqlite.js';
 
@@ -24,9 +31,9 @@ function obterAppFirebase() {
   }
 
   const credenciais = JSON.parse(config.firebase.serviceAccountJson);
-  appFirebase = admin.initializeApp({
-    credential: admin.credential.cert(credenciais),
-  });
+  appFirebase = getApps().length
+    ? getApps()[0]
+    : initializeApp({ credential: cert(credenciais) });
   return appFirebase;
 }
 
@@ -39,7 +46,7 @@ export async function notificarUsuario(usuarioId, { titulo, corpo }) {
     if (!tokens.length) return { enviadas: 0 };
 
     const app = obterAppFirebase();
-    const resposta = await admin.messaging(app).sendEachForMulticast({
+    const resposta = await getMessaging(app).sendEachForMulticast({
       tokens,
       notification: { title: titulo, body: corpo },
     });
