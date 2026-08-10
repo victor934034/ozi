@@ -34,7 +34,6 @@ fun SettingsScreen(
     aoSalvar: () -> Unit,
 ) {
     val prefs = viewModel.preferencias()
-    var urlServidor by remember { mutableStateOf(prefs.urlServidor) }
     var nomeDispositivo by remember { mutableStateOf(prefs.nomeDispositivo) }
     var chavePicovoice by remember { mutableStateOf(prefs.chavePicovoice) }
 
@@ -58,23 +57,6 @@ fun SettingsScreen(
         ) {
             Text("Logado como", color = OziTextoFraco, style = MaterialTheme.typography.labelSmall)
             Text(prefs.emailUsuario)
-
-            Spacer(Modifier.size(16.dp))
-
-            Text("Servidor (avancado)")
-            OutlinedTextField(
-                value = urlServidor,
-                onValueChange = { urlServidor = it },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text(com.ozi.assistant.SERVIDOR_PADRAO) },
-                singleLine = true,
-            )
-            Text(
-                "Deixe em branco pra usar o servidor padrao do Ozi. So preencha se voce " +
-                    "estiver rodando seu proprio servidor.",
-                color = OziTextoFraco,
-                style = MaterialTheme.typography.bodySmall,
-            )
 
             Spacer(Modifier.size(16.dp))
 
@@ -107,7 +89,6 @@ fun SettingsScreen(
 
             Button(
                 onClick = {
-                    prefs.urlServidor = urlServidor.trim()
                     prefs.nomeDispositivo = nomeDispositivo.trim()
                     prefs.chavePicovoice = chavePicovoice.trim()
                     aoSalvar()

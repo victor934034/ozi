@@ -34,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.ozi.assistant.data.EstadoAtividade
 import com.ozi.assistant.data.EstadoConexao
 import com.ozi.assistant.data.MensagemConversa
@@ -58,7 +59,7 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("OZI") },
+                title = { OziWordmark(fontSize = 22.sp) },
                 actions = {
                     IconButton(onClick = aoAbrirConfiguracoes) {
                         Icon(Icons.Filled.Settings, contentDescription = "Configuracoes")

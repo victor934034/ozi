@@ -24,7 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import com.ozi.assistant.ui.theme.OziAzul
+import androidx.compose.ui.unit.sp
 import com.ozi.assistant.ui.theme.OziTextoFraco
 import kotlinx.coroutines.launch
 
@@ -58,7 +58,7 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Spacer(Modifier.size(64.dp))
-        Text("OZI", style = MaterialTheme.typography.headlineMedium, color = OziAzul)
+        OziWordmark(fontSize = 52.sp)
         Spacer(Modifier.size(4.dp))
         Text(
             if (modoCadastro) "Criar sua conta" else "Entrar na sua conta",

@@ -29,9 +29,15 @@ class SpeechToText(private val context: Context) {
         recognizer = SpeechRecognizer.createSpeechRecognizer(context).apply {
             setRecognitionListener(object : RecognitionListener {
                 override fun onResults(results: Bundle) {
-                    val texto = results
-                        .getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                        ?.firstOrNull()
+                    val candidatos = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                    // Se alguma das hipoteses reconhecidas comecar com "ozi"/"ozy"
+                    // (o jeito que a pessoa costuma comecar a falar com o
+                    // assistente), prioriza ela sobre a 1a hipotese - o motor de
+                    // voz erra bastante essa palavra especifica por ser um nome
+                    // fora do vocabulario comum em portugues.
+                    val texto = candidatos
+                        ?.firstOrNull { it.trim().startsWith("ozi", ignoreCase = true) || it.trim().startsWith("ozy", ignoreCase = true) }
+                        ?: candidatos?.firstOrNull()
                     if (texto.isNullOrBlank()) {
                         aoErro("Nao entendi, pode repetir?")
                     } else {
@@ -56,7 +62,15 @@ class SpeechToText(private val context: Context) {
             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE, "pt-BR")
-                putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+                // Motor online do Google reconhece MUITO melhor que o offline
+                // (vocabulario maior, atualizado) - so cai pro offline sozinho
+                // se o aparelho estiver sem internet.
+                putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, false)
+                // Pede varias hipoteses em vez de uma so - "Ozi" (nome fora do
+                // dicionario comum) tende a aparecer como uma das alternativas
+                // mesmo quando a 1a hipotese erra pra uma palavra parecida
+                // (ex: "rosa"), entao vale a pena considerar as outras.
+                putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5)
             }
             startListening(intent)
         }

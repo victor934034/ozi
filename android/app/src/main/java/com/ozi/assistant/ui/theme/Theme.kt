@@ -6,6 +6,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 val OziAzul = Color(0xFF2F6BFF)
+// Gradiente do wordmark "Ozi" (login, cabecalhos) - mesmas duas cores usadas
+// na pagina web (public/index.html) e nos conceitos de logo aprovados.
+val OziAzulClaro = Color(0xFF6FA0FF)
+val OziGlow = Color(0xFF6FE3FF)
 val OziAlerta = Color(0xFFFF7A5C)
 val OziInstavel = Color(0xFF6C93A6)
 val OziFundo = Color(0xFF0A0C10)
