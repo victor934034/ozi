@@ -3,3 +3,6 @@ node_modules/
 /data/
 .claude/
 .idea/
+firmware-esp32s3/device_auth.json
+firmware-esp32s3/wifi_creds.json
+firmware-esp32s3/log.txt
