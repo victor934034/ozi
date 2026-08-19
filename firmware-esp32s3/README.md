@@ -43,10 +43,24 @@ o teste real bateu diferente do que o comentario do arquivo original dizia.
 - WebSocket real com o servidor Ozi (login, autenticacao, conversa) -
   `ws_client.py` + `ozi_auth.py` + `ozi_client.py`
 - Tela redonda (rosto animado + texto) - `gc9a01.py`
-- Alto-falante (toca a resposta em audio do TTS) - `es8311.py` +
+- Alto-falante (toca um tom sintetico simples de teste) - `es8311.py` +
   `audio_saida.py`
 - Botao BOOT manda uma pergunta de teste fixa pro Claude (ainda sem
   microfone real)
+
+## Em andamento / suspeito de bug
+
+- **Qualidade do audio do TTS**: o WAV que o servidor manda vem em 44100Hz,
+  mas gerar o MCLK do codec via PWM em ~11MHz (256 * 44100) nao fica
+  preciso o bastante (so sai um "beep" em vez de fala limpa). Fix tentado:
+  manter o codec numa taxa fixa de 16kHz (comprovada limpa com um tom
+  sintetico) e reamostrar todo audio recebido pra 16kHz antes de tocar
+  (`_reamostrar_16bit_mono` em `audio_saida.py`). Uma primeira versao dessa
+  reamostragem (baseada em `struct.unpack` numa tupla gigante) parece ter
+  travado a placa por falta de memoria - reescrita usando o modulo `array`
+  (mais leve), mas ainda **nao foi validada de ponta a ponta** por causa
+  disso. Proximo passo: testar a versao com `array` com a placa fria/
+  descansada.
 
 ## O que NAO funciona ainda
 

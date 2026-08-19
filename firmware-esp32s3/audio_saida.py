@@ -1,20 +1,28 @@
-# Toca audio WAV (o formato que o TTS da Fish Audio manda, FISH_AUDIO_FORMAT
-# no .env do servidor) no alto-falante via I2S + codec ES8311. Le o
-# cabecalho RIFF/WAV pra descobrir taxa de amostragem/bits/canais de
-# verdade em vez de supor um valor fixo - o servidor pode mudar isso.
+# Toca audio WAV (o formato que o TTS da Fish Audio manda) no alto-falante
+# via I2S + codec ES8311. Le o cabecalho RIFF/WAV pra descobrir taxa de
+# amostragem/bits/canais de verdade em vez de supor um valor fixo.
+#
+# TAXA FIXA DE SAIDA: em vez de mudar o clock do codec pra bater com
+# qualquer taxa que o audio recebido tiver, sempre reamostra pra
+# _TAXA_SAIDA (16kHz) antes de tocar. Testado na placa fisica: gerar o
+# MCLK do codec por PWM (nao tem saida de MCLK nativa no I2S do
+# MicroPython) fica preciso o bastante em ~4MHz (256 * 16kHz), mas em
+# ~11MHz (256 * 44.1kHz, a taxa que a Fish Audio manda) fica impreciso
+# demais e sai só uns "beeps" em vez de fala limpa. Manter uma taxa fixa e
+# ja comprovada evita esse problema de vez.
 
 import struct
+import array
 from machine import I2S, Pin
 
-# --- Pinos do barramento I2S (config oficial da placa, ver comentario no
-# topo do main.py - os pinos de I2C/MCLK/PA ficam no es8311.py, que quem
-# monta o codec em main.py) ---
 _BCLK = 9
 _WS = 45
 # O comentario do firmware original (config.h do xiaozhi) tinha DIN/DOUT
 # invertidos - confirmado testando na placa fisica que o pino de dados de
 # SAIDA (alto-falante) e o 10, nao o 8 como o nome da macro sugeria.
 _DOUT = 10
+
+_TAXA_SAIDA = 16000
 
 
 def _ler_cabecalho_wav(dados):
@@ -42,36 +50,61 @@ def _ler_cabecalho_wav(dados):
     raise ValueError("WAV sem chunk 'data'")
 
 
+def _reamostrar_16bit_mono(pcm, taxa_origem, taxa_destino):
+    """Interpolacao linear simples - qualidade suficiente pra voz falada
+    (nao e um resampler de qualidade de estudio, mas roda razoavel num
+    microcontrolador sem biblioteca de DSP).
+
+    Usa o modulo `array` em vez de struct.unpack numa tupla gigante - pra
+    audio de alguns segundos isso significa centenas de milhares de
+    numeros, e uma tupla Python guarda cada um como objeto separado (varios
+    bytes de overhead cada). `array.array('h', pcm)` guarda os numeros
+    nativamente (2 bytes cada, sem overhead de objeto Python) - mais leve o
+    bastante pra nao estourar a memoria/travar o ESP32 (o que aconteceu
+    testando com a versao anterior, baseada em struct.unpack)."""
+    if taxa_origem == taxa_destino:
+        return pcm
+
+    amostras = array.array("h")
+    amostras.frombytes(pcm)
+    n_entrada = len(amostras)
+
+    n_saida = int(n_entrada * taxa_destino / taxa_origem)
+    saida = array.array("h", bytes(n_saida * 2))
+    razao = taxa_origem / taxa_destino
+
+    for i in range(n_saida):
+        pos = i * razao
+        idx = int(pos)
+        frac = pos - idx
+        a = amostras[idx] if idx < n_entrada else amostras[-1]
+        b = amostras[idx + 1] if idx + 1 < n_entrada else amostras[-1]
+        saida[i] = int(a + (b - a) * frac)
+
+    return saida.tobytes()
+
+
 class SaidaAudio:
     def __init__(self, codec):
         self.codec = codec
-        self._i2s = None
-        self._rate_atual = None
-
-    def _garantir_i2s(self, sample_rate, bits, canais):
-        # Reabre o I2S so quando o formato muda (a maioria das respostas do
-        # TTS deve vir com o mesmo sample rate, entao isso normalmente so
-        # acontece uma vez).
-        if self._i2s is not None and self._rate_atual == (sample_rate, bits, canais):
-            return
-
-        if self._i2s is not None:
-            self._i2s.deinit()
-
         self._i2s = I2S(
             0,
             sck=Pin(_BCLK),
             ws=Pin(_WS),
             sd=Pin(_DOUT),
             mode=I2S.TX,
-            bits=bits,
-            format=I2S.MONO if canais == 1 else I2S.STEREO,
-            rate=sample_rate,
+            bits=16,
+            format=I2S.MONO,
+            rate=_TAXA_SAIDA,
             ibuf=20000,
         )
-        self._rate_atual = (sample_rate, bits, canais)
 
     def tocar_wav(self, dados_wav):
         sample_rate, bits, canais, offset = _ler_cabecalho_wav(dados_wav)
-        self._garantir_i2s(sample_rate, bits, canais)
-        self._i2s.write(dados_wav[offset:])
+        pcm = dados_wav[offset:]
+
+        if bits != 16 or canais != 1:
+            raise ValueError("so suporta WAV 16 bits mono por enquanto (recebido: %d bits, %d canais)" % (bits, canais))
+
+        pcm = _reamostrar_16bit_mono(pcm, sample_rate, _TAXA_SAIDA)
+        self._i2s.write(pcm)
