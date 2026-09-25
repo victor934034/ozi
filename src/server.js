@@ -32,7 +32,12 @@ audio, entao brevidade tambem significa resposta mais rapida.
 Voce tem acesso a ferramentas pra controlar dispositivos smart home (Smart Life) da casa
 do usuario, como luzes e tomadas. Quando o usuario pedir pra ligar/desligar algo ou
 perguntar o que esta ligado, use as ferramentas em vez de so responder que nao pode fazer
-isso.`;
+isso.
+
+Voce tem acesso a internet por uma ferramenta de busca na web. Use quando a pergunta
+depender de informacao atual ou que voce nao sabe com certeza (noticias, clima, cotacoes,
+placares, horarios, lancamentos, fatos recentes). Nao pesquise pra conversa comum. Depois
+de pesquisar, responda direto e curto, sem ler links, URLs ou fontes em voz alta.`;
 
 function montarSystemPrompt({ memorias, fatos }) {
   const partes = [SYSTEM_BASE, promptExtraDoHumor()];
@@ -91,6 +96,18 @@ const FERRAMENTAS_CASA = [
   },
 ];
 
+// Busca na web (ferramenta "server-side" da Anthropic: o proprio Claude
+// pesquisa e cita, sem a gente executar nada). Precisa estar habilitada no
+// Console da Anthropic (Settings > Privacy > Web search).
+const FERRAMENTA_WEB = {
+  type: 'web_search_20250305',
+  name: 'web_search',
+  max_uses: 3,
+  user_location: { type: 'approximate', country: 'BR', timezone: 'America/Sao_Paulo' },
+};
+
+const FERRAMENTAS = [...FERRAMENTAS_CASA, FERRAMENTA_WEB];
+
 // Executa de fato a ferramenta que o Claude pediu pra chamar, e devolve o
 // resultado como texto/JSON (formato que o "tool_result" da API espera).
 // Erros viram um JSON de erro em vez de excecao - assim o Claude consegue
@@ -128,13 +145,19 @@ async function executarFerramenta(blocoFerramenta) {
 // acontece numa unica chamada, igual ao fluxo sem ferramentas.
 async function responderComFerramentas({ system, messages }) {
   const usoAcumulado = { tokensEntrada: 0, tokensSaida: 0 };
-  let resposta = await askClaudeComFerramentas({ system, messages, tools: FERRAMENTAS_CASA });
+  let resposta = await askClaudeComFerramentas({ system, messages, tools: FERRAMENTAS });
 
-  while (resposta.stop_reason === 'tool_use') {
+  while (resposta.stop_reason === 'tool_use' || resposta.stop_reason === 'pause_turn') {
     usoAcumulado.tokensEntrada += resposta.usage.input_tokens;
     usoAcumulado.tokensSaida += resposta.usage.output_tokens;
 
     messages.push({ role: 'assistant', content: resposta.content });
+
+    // pause_turn: a busca na web demorou e o Claude pausou - so continuar.
+    if (resposta.stop_reason === 'pause_turn') {
+      resposta = await askClaudeComFerramentas({ system, messages, tools: FERRAMENTAS });
+      continue;
+    }
 
     const blocosFerramenta = resposta.content.filter((bloco) => bloco.type === 'tool_use');
     const resultados = await Promise.all(blocosFerramenta.map(executarFerramenta));
@@ -148,14 +171,19 @@ async function responderComFerramentas({ system, messages }) {
       })),
     });
 
-    resposta = await askClaudeComFerramentas({ system, messages, tools: FERRAMENTAS_CASA });
+    resposta = await askClaudeComFerramentas({ system, messages, tools: FERRAMENTAS });
   }
 
   usoAcumulado.tokensEntrada += resposta.usage.input_tokens;
   usoAcumulado.tokensSaida += resposta.usage.output_tokens;
 
-  const blocoTexto = resposta.content.find((bloco) => bloco.type === 'text');
-  const texto = blocoTexto ? blocoTexto.text : '';
+  // Com busca na web a resposta vem em varios blocos de texto (com citacoes
+  // no meio) - o texto final e a juncao de todos.
+  const texto = resposta.content
+    .filter((bloco) => bloco.type === 'text')
+    .map((bloco) => bloco.text)
+    .join('')
+    .trim();
   messages.push({ role: 'assistant', content: texto });
 
   return { texto, uso: usoAcumulado };
