@@ -60,7 +60,9 @@ function liberarVaga() {
 }
 
 // Funcao principal deste provedor: recebe o texto, devolve o audio pronto.
-export async function gerarAudioFishAudio(texto) {
+// opcoes.sampleRate: taxa de amostragem pedida pelo dispositivo (ex: 16000
+// pro ESP32, que nao consegue reamostrar direito o 44.1kHz padrao).
+export async function gerarAudioFishAudio(texto, opcoes = {}) {
   const { apiKey, modelo, formato, vozId, latencia } = config.fishAudio;
 
   if (!apiKey) {
@@ -87,6 +89,7 @@ export async function gerarAudioFishAudio(texto) {
         text: texto,
         format: formato,
         latency: latencia,
+        ...(opcoes.sampleRate ? { sample_rate: opcoes.sampleRate } : {}),
         // reference_id so entra no corpo se voce configurou uma voz
         // especifica; se nao, a API usa a voz padrao do modelo.
         ...(vozId ? { reference_id: vozId } : {}),

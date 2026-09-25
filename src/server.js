@@ -306,6 +306,7 @@ export function iniciarServidor(httpServer) {
     const historicoConversa = [];
     let usuario = null; // so preenchido depois de {type:'autenticar', token} valido
     let deviceId = null;
+    let sampleRateTts;
 
     ws.on('message', async (data) => {
       let payload;
@@ -338,6 +339,10 @@ export function iniciarServidor(httpServer) {
 
       if (payload.type === 'identificar') {
         deviceId = payload.device_id;
+        // Opcional: dispositivos com pouco processamento (ESP32) pedem o
+        // TTS ja na taxa que conseguem tocar, em vez de reamostrar la.
+        const taxa = Number(payload.sample_rate);
+        sampleRateTts = taxa >= 8000 && taxa <= 48000 ? taxa : undefined;
         registrarConexaoDispositivo(usuario.id, deviceId, payload.nome || deviceId);
         console.log(`[server] dispositivo identificado: ${payload.nome || deviceId} (${deviceId}) do usuario ${usuario.email}`);
         return;
@@ -364,7 +369,7 @@ export function iniciarServidor(httpServer) {
         //    como uma mensagem binaria separada.
         if (ehConversa) {
           try {
-            const { audio } = await gerarAudio(resposta);
+            const { audio } = await gerarAudio(resposta, { sampleRate: sampleRateTts });
             ws.send(audio);
           } catch (erroTts) {
             // Se o TTS falhar (chave invalida, limite estourado, API fora do

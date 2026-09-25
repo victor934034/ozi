@@ -71,7 +71,13 @@ class ClienteOzi:
             raise OSError("erro de autenticacao: %s" % mensagem)
 
         await self.ws.enviar_json(
-            {"type": "identificar", "device_id": self.device_id, "nome": self.nome_dispositivo}
+            {
+                "type": "identificar",
+                "device_id": self.device_id,
+                "nome": self.nome_dispositivo,
+                # pede o TTS ja em 16kHz (taxa fixa do codec) - evita reamostrar no ESP
+                "sample_rate": 16000,
+            }
         )
         self.autenticado = True
 

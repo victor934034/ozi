@@ -30,7 +30,7 @@ const PROVEDORES = {
  *     SQLite pra voce acompanhar o uso crescendo ao longo do tempo;
  *   - logar no console um resumo de cada chamada.
  */
-export async function gerarAudio(texto) {
+export async function gerarAudio(texto, opcoes = {}) {
   const nomeProvedor = config.ttsProvider;
   const funcaoDoProvedor = PROVEDORES[nomeProvedor];
 
@@ -43,7 +43,7 @@ export async function gerarAudio(texto) {
   const inicio = Date.now();
 
   try {
-    const resultado = await funcaoDoProvedor(texto);
+    const resultado = await funcaoDoProvedor(texto, opcoes);
     const duracaoMs = Date.now() - inicio;
 
     registrarChamadaTTS({
