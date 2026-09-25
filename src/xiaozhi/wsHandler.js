@@ -26,7 +26,14 @@ const QUADROS_PARA_INICIAR = 2; // 120ms seguidos acima do limiar = comecou a fa
 const SILENCIO_FINAL_MS = 900; // quanto silencio depois da fala fecha a frase
 const FALA_MINIMA_MS = 300; // menos que isso e um estalo, nao uma frase
 const FALA_MAXIMA_MS = 15000; // corta frases enormes
-const ESPERA_INICIAL_MS = 10000; // sem ninguem falar, desiste de escutar
+const ESPERA_INICIAL_MS = 10000; // sem ninguem falar ao abrir a sessao, encerra
+const INATIVIDADE_APOS_RESPOSTA_MS = 8000; // depois de responder, espera esse tempo antes de encerrar
+
+// "tchau", "pode parar", etc: o Ozi se despede e encerra a sessao (o ESP volta
+// a esperar so a palavra de ativacao).
+const REGEX_DESPEDIDA =
+  /\b(tchau|ate logo|ate mais|pode parar|para de ouvir|encerrar|era so isso|so isso mesmo|fecha a conversa|desligar conversa)\b/;
+const semAcento = (t) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 function rms(pcm) {
   let soma = 0;
@@ -94,6 +101,7 @@ export function criarWebSocketXiaozhi() {
     let msFala = 0;
     let msSilencio = 0;
     let msEspera = 0;
+    let timerInatividade = null;
 
     registrarConexaoDispositivo(usuario.id, deviceId, 'Ozi (xiaozhi)');
     console.log(`[xiaozhi] ${deviceId} conectado (conta ${usuario.email})`);
@@ -101,6 +109,30 @@ export function criarWebSocketXiaozhi() {
     const enviar = (obj) => {
       if (ws.readyState === ws.OPEN) ws.send(JSON.stringify({ session_id: sessionId, ...obj }));
     };
+
+    function limparInatividade() {
+      if (timerInatividade) clearTimeout(timerInatividade);
+      timerInatividade = null;
+    }
+
+    // Fecha o WebSocket: o firmware entende como "conversa acabou" e volta a
+    // esperar so a palavra de ativacao (idle).
+    function encerrarSessao(motivo, atrasoMs = 0) {
+      limparInatividade();
+      setTimeout(() => {
+        if (ws.readyState === ws.OPEN) {
+          console.log(`[xiaozhi] ${deviceId}: encerrando sessao (${motivo})`);
+          ws.close(1000, motivo);
+        }
+      }, atrasoMs);
+    }
+
+    function armarInatividade(ms) {
+      limparInatividade();
+      timerInatividade = setTimeout(() => {
+        if (!processando && !falando) encerrarSessao('inatividade');
+      }, ms);
+    }
 
     function reiniciarEscuta() {
       quadros = [];
@@ -166,6 +198,13 @@ export function criarWebSocketXiaozhi() {
         if (!texto) return;
 
         enviar({ type: 'stt', text: texto });
+
+        if (REGEX_DESPEDIDA.test(semAcento(texto))) {
+          await falar('Até logo!');
+          encerrarSessao('despedida', 1500);
+          return;
+        }
+
         const { resposta, ehConversa } = await processarMensagem(texto, historico, usuario.id, deviceId);
         console.log(`[xiaozhi] resposta: "${resposta.slice(0, 120)}"`);
         await falar(ehConversa ? resposta : resposta.slice(0, 300));
@@ -174,6 +213,8 @@ export function criarWebSocketXiaozhi() {
         enviar({ type: 'alert', status: 'Erro', message: erro.message.slice(0, 80), emotion: 'sad' });
       } finally {
         processando = false;
+        // Depois de responder, se ninguem falar mais, encerra a sessao.
+        if (modo !== 'manual' && ws.readyState === ws.OPEN) armarInatividade(INATIVIDADE_APOS_RESPOSTA_MS);
       }
     }
 
@@ -194,11 +235,10 @@ export function criarWebSocketXiaozhi() {
         quadros.push(pcm);
         if (quadros.length > 5 && acimaSeguidos === 0) quadros.shift();
         if (acimaSeguidos >= QUADROS_PARA_INICIAR) {
+          limparInatividade();
           iniciouFala = true;
           msFala = acimaSeguidos * QUADRO_MS;
           msSilencio = 0;
-        } else if (msEspera >= ESPERA_INICIAL_MS && modo !== 'manual') {
-          reiniciarEscuta(); // ninguem falou; recomeca a esperar sem acumular
         }
         return;
       }
@@ -241,6 +281,7 @@ export function criarWebSocketXiaozhi() {
           escutando = true;
           modo = msg.mode || 'auto';
           reiniciarEscuta();
+          if (modo !== 'manual' && !processando && !falando) armarInatividade(ESPERA_INICIAL_MS);
         } else if (msg.state === 'stop') {
           escutando = false;
           // No modo manual (segurar o botao) o "stop" e quem fecha a frase.
@@ -257,6 +298,7 @@ export function criarWebSocketXiaozhi() {
     });
 
     ws.on('close', () => {
+      limparInatividade();
       cancelarFala = true;
       registrarDesconexaoDispositivo(usuario.id, deviceId);
       decoder.delete();
