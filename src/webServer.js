@@ -4,6 +4,7 @@ import path from 'node:path';
 import { config } from './config.js';
 import { listarDispositivos } from './memory/sqlite.js';
 import { registrar, login, loginComGoogle, validarToken } from './auth.js';
+import { tratarOtaXiaozhi } from './xiaozhi/ota.js';
 
 const publicDir = path.join(config.rootDir, 'public');
 
@@ -83,6 +84,12 @@ function servirArquivoEstatico(req, res) {
 export function criarServidorHttp() {
   return http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
+
+  // --- OTA do firmware xiaozhi (ESP32): devolve URL do WebSocket + token ---
+  if (url.pathname.startsWith('/xiaozhi/ota')) {
+    tratarOtaXiaozhi(req, res);
+    return;
+  }
 
   // --- Cadastro por email + senha ---
   if (url.pathname === '/api/auth/registrar' && req.method === 'POST') {

@@ -12,7 +12,7 @@ import { criarUsuario, buscarUsuarioPorEmail, buscarUsuarioPorGoogleId, buscarUs
 const CUSTO_HASH = 12; // rounds do bcrypt - 12 e um padrao seguro sem ficar lento demais
 const VALIDADE_TOKEN = '30d';
 
-function emitirToken(usuario) {
+export function emitirToken(usuario) {
   if (!config.auth.jwtSecret) {
     throw new Error('JWT_SECRET nao configurado no servidor.');
   }

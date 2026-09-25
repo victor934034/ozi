@@ -17,6 +17,7 @@ import { runAgentLoop } from './agents/index.js';
 import { gerarAudio } from './tts/index.js';
 import { listarDispositivos as listarDispositivosSmartLife, ligar, desligar } from './integrations/smartLife.js';
 import { validarToken } from './auth.js';
+import { criarWebSocketXiaozhi } from './xiaozhi/wsHandler.js';
 
 const SYSTEM_BASE = `Voce e o Ozi, um assistente pessoal rodando localmente. Seja direto,
 util e natural em portugues do Brasil. Voce tem memoria de conversas anteriores (injetada
@@ -168,7 +169,7 @@ async function responderComFerramentas({ system, messages }) {
 // nunca e null aqui, porque a conexao so chega nesse ponto depois de
 // autenticada (ver iniciarServidor). `deviceId` pode ser null se o cliente
 // autenticado ainda nao se identificou como um dispositivo especifico.
-async function processarMensagem(texto, historicoConversa, usuarioId, deviceId) {
+export async function processarMensagem(texto, historicoConversa, usuarioId, deviceId) {
   const textoLower = texto.trim().toLowerCase();
 
   if (textoLower.startsWith('run:') || textoLower.startsWith('executar:')) {
@@ -299,7 +300,18 @@ async function processarMensagem(texto, historicoConversa, usuarioId, deviceId) 
 // ao handshake de upgrade automaticamente), em vez de abrir uma porta
 // propria. E assim que src/app.js usa isso, unificando tudo numa porta so.
 export function iniciarServidor(httpServer) {
-  const wss = httpServer ? new WebSocketServer({ server: httpServer }) : new WebSocketServer({ port: config.port });
+  // Com servidor HTTP compartilhado, o roteamento do upgrade e manual (noServer)
+  // pra que o caminho /xiaozhi/ va pro protocolo do firmware xiaozhi e o
+  // resto continue no WebSocket de texto do app/web (ver src/xiaozhi/).
+  const wss = httpServer ? new WebSocketServer({ noServer: true }) : new WebSocketServer({ port: config.port });
+
+  if (httpServer) {
+    const wssXiaozhi = criarWebSocketXiaozhi();
+    httpServer.on('upgrade', (req, socket, head) => {
+      const alvo = req.url && req.url.startsWith('/xiaozhi/') ? wssXiaozhi : wss;
+      alvo.handleUpgrade(req, socket, head, (ws) => alvo.emit('connection', ws, req));
+    });
+  }
 
   wss.on('connection', (ws) => {
     console.log('[server] cliente conectado (nao autenticado ainda)');

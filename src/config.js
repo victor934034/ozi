@@ -24,6 +24,21 @@ export const config = {
   // "elevenlabs") e so criar o arquivo do provedor e trocar essa variavel.
   ttsProvider: process.env.TTS_PROVIDER || 'fish-audio',
 
+  // Firmware xiaozhi (ESP32): OTA + WebSocket com audio Opus (ver src/xiaozhi/).
+  xiaozhi: {
+    // Conta Ozi dona dos dispositivos ESP (ate existir um fluxo de vinculo por
+    // dispositivo). Sem isso, usa a primeira conta cadastrada.
+    donoEmail: process.env.XIAOZHI_OWNER_EMAIL || undefined,
+    // URL publica (wss://) que o firmware deve usar; se vazio, deriva do Host.
+    urlPublica: process.env.XIAOZHI_PUBLIC_URL || undefined,
+  },
+
+  // Transcricao de fala (Whisper via Groq) pro firmware xiaozhi.
+  groq: {
+    apiKey: process.env.GROQ_API_KEY,
+    modelo: process.env.GROQ_STT_MODEL || 'whisper-large-v3-turbo',
+  },
+
   fishAudio: {
     apiKey: process.env.FISH_AUDIO_API_KEY,
     // s2.1-pro-free = modelo gratuito da Fish Audio (ver documentacao oficial).

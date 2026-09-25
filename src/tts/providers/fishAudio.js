@@ -63,7 +63,9 @@ function liberarVaga() {
 // opcoes.sampleRate: taxa de amostragem pedida pelo dispositivo (ex: 16000
 // pro ESP32, que nao consegue reamostrar direito o 44.1kHz padrao).
 export async function gerarAudioFishAudio(texto, opcoes = {}) {
-  const { apiKey, modelo, formato, vozId, latencia } = config.fishAudio;
+  const { apiKey, modelo, vozId, latencia } = config.fishAudio;
+  // opcoes.formato: o firmware xiaozhi pede 'pcm' cru pra codificar em Opus.
+  const formato = opcoes.formato || config.fishAudio.formato;
 
   if (!apiKey) {
     // Erro claro e imediato em vez de deixar o fetch falhar de forma confusa.
